@@ -19,6 +19,10 @@ dependencies {
     compileOnly libs.servlet.api
     implementation libs.jackson.databind
 
+    runtimeOnly libs.postgresql.driver
+    implementation libs.hikari.cp
+    implementation libs.bundles.logging
+
     testImplementation platform(libs.junit.bom)
     testRuntimeOnly libs.bundles.junit.runtime
     testImplementation libs.bundles.junit.jupiter
