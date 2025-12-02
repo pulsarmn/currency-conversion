@@ -1,10 +1,16 @@
 [versions]
+servlet-api = "6.1.0"
+jackson = "3.0.2"
+
 junit = "6.0.1"
 mockito = "5.20.0"
 assertj = "3.27.6"
 
 
 [libraries]
+servlet-api = { module = "jakarta.servlet:jakarta.servlet-api", version.ref = "servlet-api" }
+jackson-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson" }
+
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params" }
