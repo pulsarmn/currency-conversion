@@ -1,4 +1,5 @@
 plugins {
+    id 'war'
     id 'java'
     id 'io.freefair.lombok' version '9.0.0'
 }
@@ -15,6 +16,9 @@ repositories {
 }
 
 dependencies {
+    compileOnly libs.servlet.api
+    implementation libs.jackson.databind
+
     testImplementation platform(libs.junit.bom)
     testRuntimeOnly libs.bundles.junit.runtime
     testImplementation libs.bundles.junit.jupiter
