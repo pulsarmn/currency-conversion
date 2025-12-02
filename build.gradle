@@ -33,3 +33,7 @@ java {
 test {
     useJUnitPlatform()
 }
+
+war {
+    archiveFileName = 'ROOT.war'
+}
