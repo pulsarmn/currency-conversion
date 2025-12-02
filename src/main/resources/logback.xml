@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<configuration xmlns="http://ch.qos.logback/xml/ns/logback">
+    <contextName>CurrencyContext</contextName>
+    <property name="LOG_LEVEL" value="${LOG_LEVEL:-INFO}"/>
+    <property name="LOG_DIR" value="${LOG_PATH:-./logs}"/>
+    <property name="APP_NAME" value="${APP_NAME:-currency}"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(➤ %-5level){ERROR=red, WARN=yellow, INFO=green, DEBUG=blue, TRACE=cyan} %magenta([%thread]) %cyan(%logger{30}) -- %msg%n%ex{full}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <append>true</append>
+        <file>${LOG_DIR}/${APP_NAME}.log</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>10</maxHistory>
+            <totalSizeCap>5GB</totalSizeCap>
+            <fileNamePattern>${LOG_DIR}/${APP_NAME}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} ▶ %-5level [%thread] %logger{30} -- %msg%n%ex{full}</pattern>
+        </encoder>
+    </appender>
+
+    <root level="${LOG_LEVEL}">
+        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>
