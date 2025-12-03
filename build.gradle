@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'org.pulsar.currency'
-version = '1.4.0'
+version = '1.5.0'
 
 ext {
     javaVersion = JavaVersion.VERSION_21
@@ -19,7 +19,7 @@ dependencies {
     compileOnly libs.servlet.api
     implementation libs.jackson.databind
 
-    runtimeOnly libs.postgresql.driver
+    implementation libs.postgresql.driver
     implementation libs.hikari.cp
     implementation libs.bundles.logging
 
