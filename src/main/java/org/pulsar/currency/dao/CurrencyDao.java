@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 
@@ -20,6 +21,7 @@ public class CurrencyDao {
     private final DataSource dataSource;
 
     private static final String FIND_ALL = "SELECT id, code, full_name, sign FROM currencies";
+    private static final String FIND_BY_CODE = FIND_ALL + " WHERE code = ?";
 
     public CurrencyDao(DataSource dataSource) {
         this.dataSource = dataSource;
@@ -37,6 +39,7 @@ public class CurrencyDao {
             log.info("{} currencies have been received", currencies.size());
             return currencies;
         } catch (SQLException e) {
+            log.error("Error when receiving currencies", e);
             throw new DatabaseException(e);
         }
     }
@@ -47,6 +50,30 @@ public class CurrencyDao {
             result.add(mapCurrency(resultSet));
         }
         return result;
+    }
+
+    public Optional<Currency> findByCode(String code) {
+        log.info("Finding currency by '{}' code...", code);
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_BY_CODE)) {
+            statement.setString(1, code);
+            ResultSet resultSet = statement.executeQuery();
+
+            return extractSingle(resultSet);
+        } catch (SQLException e) {
+            log.error("Error when receiving currency with code '{}'", code, e);
+            throw new DatabaseException(e);
+        }
+    }
+
+    private Optional<Currency> extractSingle(ResultSet resultSet) throws SQLException {
+        if (resultSet.next()) {
+            log.info("Currency has been found");
+            return Optional.of(mapCurrency(resultSet));
+        }
+        log.info("Currency hasn't been found");
+        return Optional.empty();
     }
 
     private Currency mapCurrency(ResultSet resultSet) throws SQLException {

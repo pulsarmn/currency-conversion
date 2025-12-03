@@ -4,9 +4,12 @@ import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
+import org.pulsar.currency.DataSourceFactory;
 import org.pulsar.currency.dao.CurrencyDao;
 import org.pulsar.currency.service.CurrencyService;
 import tools.jackson.databind.ObjectMapper;
+
+import javax.sql.DataSource;
 
 
 @WebListener
@@ -15,8 +18,9 @@ public class StartupListener implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         ServletContext servletContext = sce.getServletContext();
+        DataSource dataSource = DataSourceFactory.getDataSource();
 
-        CurrencyDao currencyDao = new CurrencyDao();
+        CurrencyDao currencyDao = new CurrencyDao(dataSource);
         CurrencyService currencyService = new CurrencyService(currencyDao);
         servletContext.setAttribute("currencyService", currencyService);
 
