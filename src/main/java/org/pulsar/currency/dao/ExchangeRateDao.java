@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 
@@ -31,6 +32,7 @@ public class ExchangeRateDao {
             JOIN currencies bc ON er.base_currency_id = bc.id
             JOIN currencies tc ON er.target_currency_id = tc.id
             """.formatted(COLUMNS);
+    private static final String FIND_BY_CODES = FIND_ALL + " WHERE bc.code = ? AND tc.code = ?";
 
     private static final String BASE_CURRENCY_PREFIX = "bc";
     private static final String TARGET_CURRENCY_PREFIX = "tc";
@@ -61,6 +63,32 @@ public class ExchangeRateDao {
             result.add(mapExchangeRate(resultSet));
         }
         return result;
+    }
+
+    public Optional<ExchangeRate> findByCodes(String baseCode, String targetCode) {
+        log.info("Finding exchange rate with codes ('{}', '{}')...", baseCode, targetCode);
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(FIND_BY_CODES)) {
+            statement.setString(1, baseCode);
+            statement.setString(2, targetCode);
+
+            ResultSet resultSet = statement.executeQuery();
+
+            return extractSingle(resultSet);
+        } catch (SQLException e) {
+            log.error("Error while finding exchange rate with codes ('{}', '{}')", baseCode, targetCode);
+            throw new DatabaseException(e);
+        }
+    }
+
+    private Optional<ExchangeRate> extractSingle(ResultSet resultSet) throws SQLException {
+        if (resultSet.next()) {
+            log.info("Exchange rate has been found");
+            return Optional.of(mapExchangeRate(resultSet));
+        }
+        log.info("Exchange rate hasn't been found");
+        return Optional.empty();
     }
 
     private ExchangeRate mapExchangeRate(ResultSet resultSet) throws SQLException {
