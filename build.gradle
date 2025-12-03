@@ -4,8 +4,8 @@ plugins {
     id 'io.freefair.lombok' version '9.0.0'
 }
 
-group = "org.pulsar.currency"
-version = "0.0.0"
+group = 'org.pulsar.currency'
+version = '1.0.0'
 
 ext {
     javaVersion = JavaVersion.VERSION_21
