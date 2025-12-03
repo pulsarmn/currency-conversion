@@ -19,7 +19,7 @@ dependencies {
     compileOnly libs.servlet.api
     implementation libs.jackson.databind
 
-    runtimeOnly libs.postgresql.driver
+    implementation libs.postgresql.driver
     implementation libs.hikari.cp
     implementation libs.bundles.logging
 
