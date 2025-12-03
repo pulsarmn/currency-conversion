@@ -1,7 +1,10 @@
 package org.pulsar.currency.dao;
 
 import lombok.extern.slf4j.Slf4j;
+import org.postgresql.util.PSQLState;
+import org.pulsar.currency.exception.CurrencyNotFoundException;
 import org.pulsar.currency.exception.DatabaseException;
+import org.pulsar.currency.exception.ExchangeRateAlreadyExistsException;
 import org.pulsar.currency.model.Currency;
 import org.pulsar.currency.model.ExchangeRate;
 
@@ -33,9 +36,17 @@ public class ExchangeRateDao {
             JOIN currencies tc ON er.target_currency_id = tc.id
             """.formatted(COLUMNS);
     private static final String FIND_BY_CODES = FIND_ALL + " WHERE bc.code = ? AND tc.code = ?";
+    private static final String SAVE = """
+            INSERT INTO exchange_rates
+            (id, base_currency_id, target_currency_id, rate)
+            VALUES
+            (?, (SELECT id FROM currencies WHERE code = ?), (SELECT id FROM currencies WHERE code = ?), ?)
+            """;
 
     private static final String BASE_CURRENCY_PREFIX = "bc";
     private static final String TARGET_CURRENCY_PREFIX = "tc";
+    private static final String UNIQUE_CONSTRAINT = PSQLState.UNIQUE_VIOLATION.getState();
+    private static final String NOT_NULL_CONSTRAINT = PSQLState.NOT_NULL_VIOLATION.getState();
 
     public ExchangeRateDao(DataSource dataSource) {
         this.dataSource = dataSource;
@@ -89,6 +100,43 @@ public class ExchangeRateDao {
         }
         log.info("Exchange rate hasn't been found");
         return Optional.empty();
+    }
+
+    public void save(ExchangeRate exchangeRate) {
+        log.info("Saving exchange rate with id '{}'", exchangeRate.getId());
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(SAVE)) {
+            configureStatement(statement, exchangeRate);
+
+            statement.executeUpdate();
+            log.info("Exchange rate with id '{}' has been successfully saved", exchangeRate.getId());
+        } catch (SQLException e) {
+            handleSaveException(e, exchangeRate);
+        }
+    }
+
+    private void configureStatement(PreparedStatement statement, ExchangeRate exchangeRate) throws SQLException {
+        statement.setObject(1, exchangeRate.getId());
+        statement.setString(2, exchangeRate.getBaseCurrency().getCode());
+        statement.setString(3, exchangeRate.getTargetCurrency().getCode());
+        statement.setBigDecimal(4, exchangeRate.getRate());
+    }
+
+    private void handleSaveException(SQLException e, ExchangeRate exchangeRate) {
+        String sqlState = e.getSQLState();
+        if (sqlState.equals(UNIQUE_CONSTRAINT)) {
+            log.error("A currency pair with codes ('{}', '{}') already exists",
+                    exchangeRate.getBaseCurrency(), exchangeRate.getTargetCurrency());
+            throw new ExchangeRateAlreadyExistsException();
+        } else if (sqlState.equals(NOT_NULL_CONSTRAINT)) {
+            log.error("One of the currencies doesn't exist in the database ('{}', '{}')",
+                    exchangeRate.getBaseCurrency(), exchangeRate.getTargetCurrency());
+            throw new CurrencyNotFoundException();
+        } else {
+            log.error("Error while saving exchange rate with id '{}'", exchangeRate.getId(), e);
+            throw new DatabaseException(e);
+        }
     }
 
     private ExchangeRate mapExchangeRate(ResultSet resultSet) throws SQLException {
