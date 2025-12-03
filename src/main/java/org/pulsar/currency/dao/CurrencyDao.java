@@ -22,6 +22,11 @@ public class CurrencyDao {
 
     private static final String FIND_ALL = "SELECT id, code, full_name, sign FROM currencies";
     private static final String FIND_BY_CODE = FIND_ALL + " WHERE code = ?";
+    private static final String SAVE = """
+            INSERT INTO currencies (id, code, full_name, sign)
+            VALUES
+            (?, ?, ?, ?)
+            """;
 
     public CurrencyDao(DataSource dataSource) {
         this.dataSource = dataSource;
@@ -74,6 +79,28 @@ public class CurrencyDao {
         }
         log.info("Currency hasn't been found");
         return Optional.empty();
+    }
+
+    public void save(Currency currency) {
+        log.info("Saving currency to the database...");
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(SAVE)) {
+            configureStatement(statement, currency);
+
+            statement.executeUpdate();
+            log.info("Currency with id '{}' has been successfully saved", currency.getId());
+        } catch (SQLException e) {
+            log.error("Error while saving currency with id '{}'", currency.getId(), e);
+            throw new DatabaseException(e);
+        }
+    }
+
+    private void configureStatement(PreparedStatement statement, Currency currency) throws SQLException {
+        statement.setObject(1, currency.getId());
+        statement.setString(2, currency.getCode());
+        statement.setString(3, currency.getFullName());
+        statement.setString(4, currency.getSign());
     }
 
     private Currency mapCurrency(ResultSet resultSet) throws SQLException {

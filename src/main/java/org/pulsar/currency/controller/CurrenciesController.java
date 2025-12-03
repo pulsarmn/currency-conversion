@@ -7,8 +7,10 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.pulsar.currency.dto.CurrencyCreateRequest;
 import org.pulsar.currency.dto.CurrencyResponse;
 import org.pulsar.currency.dto.ErrorResponse;
+import org.pulsar.currency.exception.CurrencyAlreadyExistsException;
 import org.pulsar.currency.exception.DatabaseException;
 import org.pulsar.currency.service.CurrencyService;
 import tools.jackson.databind.ObjectMapper;
@@ -50,5 +52,49 @@ public class CurrenciesController extends HttpServlet {
             response.setStatus(SC_INTERNAL_SERVER_ERROR);
             return objectMapper.writeValueAsString(new ErrorResponse("Ошибка сервера. Уже работаем над её исправлением"));
         }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String jsonResponse = handleDoPost(request, response);
+        response.getWriter().write(jsonResponse);
+    }
+
+    private String handleDoPost(HttpServletRequest request, HttpServletResponse response) {
+        CurrencyCreateRequest createRequest = buildCreateRequest(request);
+
+        return processCreateRequest(createRequest, response);
+    }
+
+    private String processCreateRequest(CurrencyCreateRequest createRequest, HttpServletResponse response) {
+        try {
+            CurrencyResponse currencyResponse = currencyService.create(createRequest);
+            response.setStatus(SC_CREATED);
+            return objectMapper.writeValueAsString(currencyResponse);
+        } catch (IllegalArgumentException e) {
+            response.setStatus(SC_BAD_REQUEST);
+            return objectMapper.writeValueAsString(new ErrorResponse("Отсутствует один или несколько параметров"));
+        } catch (CurrencyAlreadyExistsException e) {
+            response.setStatus(SC_CONFLICT);
+            return objectMapper.writeValueAsString(new ErrorResponse("Валюта с кодом '%s' уже существует".formatted(createRequest.code())));
+        } catch (DatabaseException e) {
+            response.setStatus(SC_INTERNAL_SERVER_ERROR);
+            return objectMapper.writeValueAsString(new ErrorResponse("Ошибка базы данных"));
+        } catch (Exception e) {
+            response.setStatus(SC_INTERNAL_SERVER_ERROR);
+            return objectMapper.writeValueAsString(new ErrorResponse("Ошибка сервера"));
+        }
+    }
+
+    private CurrencyCreateRequest buildCreateRequest(HttpServletRequest request) {
+        String code = request.getParameter("code");
+        String name = request.getParameter("name");
+        String sign = request.getParameter("sign");
+
+        return CurrencyCreateRequest.builder()
+                .code(code)
+                .name(name)
+                .sign(sign)
+                .build();
     }
 }
