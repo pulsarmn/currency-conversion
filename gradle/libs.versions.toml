@@ -1,10 +1,25 @@
 [versions]
+servlet-api = "6.1.0"
+jackson = "3.0.2"
+postgresql-driver = "42.7.8"
+hikari-cp = "7.0.2"
+slf4j = "2.0.17"
+logback = "1.5.21"
+
 junit = "6.0.1"
 mockito = "5.20.0"
 assertj = "3.27.6"
 
 
 [libraries]
+servlet-api = { module = "jakarta.servlet:jakarta.servlet-api", version.ref = "servlet-api" }
+jackson-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson" }
+
+postgresql-driver = { module = "org.postgresql:postgresql", version.ref = "postgresql-driver" }
+hikari-cp = { module = "com.zaxxer:HikariCP", version.ref = "hikari-cp" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params" }
@@ -17,6 +32,8 @@ assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 
 
 [bundles]
+logging = [ "slf4j-api", "logback-classic" ]
+
 junit-runtime = [ "junit-jupiter-engine", "junit-platform-launcher" ]
 junit-jupiter = [ "junit-jupiter-api", "junit-jupiter-params" ]
 testing = [ "mockito-core", "mockito-junit-jupiter", "assertj-core" ]

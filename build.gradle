@@ -1,9 +1,11 @@
 plugins {
+    id 'war'
     id 'java'
+    id 'io.freefair.lombok' version '9.0.0'
 }
 
-group = "org.pulsar.currency"
-version = "0.0.0"
+group = 'org.pulsar.currency'
+version = '1.0.0'
 
 ext {
     javaVersion = JavaVersion.VERSION_21
@@ -14,6 +16,13 @@ repositories {
 }
 
 dependencies {
+    compileOnly libs.servlet.api
+    implementation libs.jackson.databind
+
+    runtimeOnly libs.postgresql.driver
+    implementation libs.hikari.cp
+    implementation libs.bundles.logging
+
     testImplementation platform(libs.junit.bom)
     testRuntimeOnly libs.bundles.junit.runtime
     testImplementation libs.bundles.junit.jupiter
@@ -27,4 +36,8 @@ java {
 
 test {
     useJUnitPlatform()
+}
+
+war {
+    archiveFileName = 'ROOT.war'
 }
