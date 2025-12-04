@@ -1,4 +1,4 @@
-package org.pulsar.currency.dto;
+package org.pulsar.currency.dto.currency;
 
 
 import lombok.Builder;

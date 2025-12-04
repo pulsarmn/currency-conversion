@@ -8,7 +8,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.pulsar.currency.dto.CurrencyResponse;
+import org.pulsar.currency.dto.currency.CurrencyResponse;
 import org.pulsar.currency.dto.ErrorResponse;
 import org.pulsar.currency.exception.CurrencyNotFoundException;
 import org.pulsar.currency.exception.DatabaseException;
