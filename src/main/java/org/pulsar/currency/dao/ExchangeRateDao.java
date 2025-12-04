@@ -157,12 +157,13 @@ public class ExchangeRateDao {
             log.error("A currency pair with codes ('{}', '{}') already exists",
                     exchangeRate.getBaseCurrency(),
                     exchangeRate.getTargetCurrency());
-            throw new ExchangeRateAlreadyExistsException();
+            throw new ExchangeRateAlreadyExistsException(
+                    exchangeRate.getBaseCurrency().getCode(), exchangeRate.getTargetCurrency().getCode());
         } else if (sqlState.equals(NOT_NULL_CONSTRAINT)) {
             log.error("One of the currencies doesn't exist in the database ('{}', '{}')",
                     exchangeRate.getBaseCurrency(),
                     exchangeRate.getTargetCurrency());
-            throw new CurrencyNotFoundException();
+            throw new CurrencyNotFoundException("");
         } else {
             log.error("Error while saving/updating exchange rate with codes ('{}', '{}')",
                     exchangeRate.getBaseCurrency(),
