@@ -43,7 +43,7 @@ public class CurrencyService {
         if (isInvalid(createRequest)) {
             throw new IllegalArgumentException("Invalid CurrencyCreateRequest");
         } else if (isExists(createRequest.code())) {
-            throw new CurrencyAlreadyExistsException();
+            throw new CurrencyAlreadyExistsException(createRequest.code());
         }
 
         Currency currency = currencyMapper.map(createRequest);
