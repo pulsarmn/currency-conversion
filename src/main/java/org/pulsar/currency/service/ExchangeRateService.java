@@ -42,7 +42,7 @@ public class ExchangeRateService {
 
         return exchangeRateDao.findByCodes(baseCurrencyCode, targetCurrencyCode)
                 .map(this::mapToResponse)
-                .orElseThrow(ExchangeRateNotFoundException::new);
+                .orElseThrow(() -> new ExchangeRateNotFoundException(baseCurrencyCode, targetCurrencyCode));
     }
 
     public ExchangeRateResponse create(ExchangeRateCreateRequest createRequest) {
@@ -132,7 +132,7 @@ public class ExchangeRateService {
             return exchange(build, amount);
         }
 
-        throw new ExchangeRateNotFoundException();
+        throw new ExchangeRateNotFoundException(exchangeRequest.baseCurrencyCode(), exchangeRequest.targetCurrencyCode());
     }
 
     private ExchangeResponse exchange(ExchangeRate exchangeRate, BigDecimal amount) {
