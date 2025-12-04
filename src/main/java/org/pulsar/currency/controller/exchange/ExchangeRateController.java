@@ -1,4 +1,4 @@
-package org.pulsar.currency.controller;
+package org.pulsar.currency.controller.exchange;
 
 
 import jakarta.servlet.ServletConfig;
