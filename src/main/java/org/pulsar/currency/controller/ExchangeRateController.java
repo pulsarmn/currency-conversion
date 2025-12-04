@@ -9,13 +9,17 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.pulsar.currency.dto.ErrorResponse;
+import org.pulsar.currency.dto.ExchangeRateCreateRequest;
 import org.pulsar.currency.dto.ExchangeRateResponse;
+import org.pulsar.currency.exception.CurrencyNotFoundException;
 import org.pulsar.currency.exception.DatabaseException;
 import org.pulsar.currency.exception.ExchangeRateNotFoundException;
 import org.pulsar.currency.service.ExchangeRateService;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -64,6 +68,85 @@ public class ExchangeRateController extends HttpServlet {
         } catch (Exception e) {
             response.setStatus(SC_INTERNAL_SERVER_ERROR);
             return objectMapper.writeValueAsString(new ErrorResponse("Ошибка сервера"));
+        }
+    }
+
+    @Override
+    protected void doPatch(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String jsonResponse = handleDoPatch(request, response);
+        response.getWriter().write(jsonResponse);
+    }
+
+    private String handleDoPatch(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        ExchangeRateCreateRequest updateRequest = buildUpdateRequest(request);
+
+        return processUpdateRequest(updateRequest, response);
+    }
+
+    private String processUpdateRequest(ExchangeRateCreateRequest updateRequest, HttpServletResponse response) {
+        try {
+            ExchangeRateResponse exchangeRateResponse = exchangeRateService.update(updateRequest);
+            response.setStatus(SC_OK);
+            return objectMapper.writeValueAsString(exchangeRateResponse);
+        } catch (IllegalArgumentException e) {
+            response.setStatus(SC_BAD_REQUEST);
+            return objectMapper.writeValueAsString(new ErrorResponse("Отсутствует один или несколько параметров"));
+        } catch (CurrencyNotFoundException e) {
+            response.setStatus(SC_NOT_FOUND);
+            ErrorResponse errorResponse = new ErrorResponse(
+                    "Одна или обе валюты не существуют ('%s', '%s')".formatted(
+                            updateRequest.baseCurrencyCode(),
+                            updateRequest.targetCurrencyCode())
+            );
+            return objectMapper.writeValueAsString(errorResponse);
+        } catch (DatabaseException e) {
+            response.setStatus(SC_INTERNAL_SERVER_ERROR);
+            return objectMapper.writeValueAsString(new ErrorResponse("Ошибка базы данных"));
+        } catch (Exception e) {
+            response.setStatus(SC_INTERNAL_SERVER_ERROR);
+            return objectMapper.writeValueAsString("Ошибка сервера");
+        }
+    }
+
+    private ExchangeRateCreateRequest buildUpdateRequest(HttpServletRequest request) throws IOException {
+        String requestURI = request.getRequestURI();
+        String baseCurrencyCode = extractBaseCode(requestURI);
+        String targetCurrencyCode = extractTargetCode(requestURI);
+        String rate = getParameter(request, "rate");
+
+        return ExchangeRateCreateRequest.builder()
+                .baseCurrencyCode(baseCurrencyCode)
+                .targetCurrencyCode(targetCurrencyCode)
+                .rate(rate)
+                .build();
+    }
+
+    private String getParameter(HttpServletRequest request, String name) throws IOException {
+        return getParameters(request).get(name);
+    }
+
+    private Map<String, String> getParameters(HttpServletRequest request) throws IOException {
+        Map<String, String> params = new HashMap<>();
+        byte[] bytes = request.getInputStream().readAllBytes();
+        String body = new String(bytes);
+        String[] pairs = body.split("&");
+
+        for (String pair : pairs) {
+            String[] keyValue = pair.split("=");
+            if (keyValue.length == 2) {
+                params.put(keyValue[0], keyValue[1]);
+            }
+        }
+
+        return params;
+    }
+
+    @Override
+    protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        if (request.getMethod().equalsIgnoreCase("PATCH")) {
+            doPatch(request, response);
+        } else {
+            super.service(request, response);
         }
     }
 
