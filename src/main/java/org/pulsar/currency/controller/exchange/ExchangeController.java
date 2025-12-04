@@ -1,4 +1,4 @@
-package org.pulsar.currency.controller;
+package org.pulsar.currency.controller.exchange;
 
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletContext;
@@ -8,10 +8,10 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.pulsar.currency.dto.ErrorResponse;
-import org.pulsar.currency.dto.ExchangeRequest;
-import org.pulsar.currency.dto.ExchangeResponse;
+import org.pulsar.currency.dto.exchange.ExchangeRequest;
+import org.pulsar.currency.dto.exchange.ExchangeResponse;
 import org.pulsar.currency.exception.DatabaseException;
-import org.pulsar.currency.exception.ExchangeRateNotFoundException;
+import org.pulsar.currency.exception.exchange.ExchangeRateNotFoundException;
 import org.pulsar.currency.service.ExchangeRateService;
 import tools.jackson.databind.ObjectMapper;
 
