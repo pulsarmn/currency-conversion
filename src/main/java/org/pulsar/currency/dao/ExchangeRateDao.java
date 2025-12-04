@@ -42,6 +42,12 @@ public class ExchangeRateDao {
             VALUES
             (?, (SELECT id FROM currencies WHERE code = ?), (SELECT id FROM currencies WHERE code = ?), ?)
             """;
+    private static final String UPDATE = """
+            UPDATE exchange_rates
+            SET rate = ?
+            WHERE base_currency_id = (SELECT id FROM currencies WHERE code = ?)
+            AND target_currency_id = (SELECT id FROM currencies WHERE code = ?)
+            """;
 
     private static final String BASE_CURRENCY_PREFIX = "bc";
     private static final String TARGET_CURRENCY_PREFIX = "tc";
@@ -103,16 +109,20 @@ public class ExchangeRateDao {
     }
 
     public void save(ExchangeRate exchangeRate) {
-        log.info("Saving exchange rate with id '{}'", exchangeRate.getId());
+        log.info("Saving exchange rate with codes ('{}', '{}')...",
+                exchangeRate.getBaseCurrency(),
+                exchangeRate.getTargetCurrency());
 
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(SAVE)) {
             configureStatement(statement, exchangeRate);
 
             statement.executeUpdate();
-            log.info("Exchange rate with id '{}' has been successfully saved", exchangeRate.getId());
+            log.info("Exchange rate with codes ('{}', '{}') has been successfully saved",
+                    exchangeRate.getBaseCurrency(),
+                    exchangeRate.getTargetCurrency());
         } catch (SQLException e) {
-            handleSaveException(e, exchangeRate);
+            handleException(e, exchangeRate);
         }
     }
 
@@ -123,18 +133,40 @@ public class ExchangeRateDao {
         statement.setBigDecimal(4, exchangeRate.getRate());
     }
 
-    private void handleSaveException(SQLException e, ExchangeRate exchangeRate) {
+    public void update(ExchangeRate exchangeRate) {
+        log.info("Updating exchange rate with id '{}'", exchangeRate.getId());
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(UPDATE)) {
+            statement.setBigDecimal(1, exchangeRate.getRate());
+            statement.setString(2, exchangeRate.getBaseCurrency().getCode());
+            statement.setString(3, exchangeRate.getTargetCurrency().getCode());
+
+            statement.executeUpdate();
+            log.info("Exchange rate with codes ('{}', '{}') has been successfully updated",
+                    exchangeRate.getBaseCurrency(),
+                    exchangeRate.getTargetCurrency());
+        } catch (SQLException e) {
+            handleException(e, exchangeRate);
+        }
+    }
+
+    private void handleException(SQLException e, ExchangeRate exchangeRate) {
         String sqlState = e.getSQLState();
         if (sqlState.equals(UNIQUE_CONSTRAINT)) {
             log.error("A currency pair with codes ('{}', '{}') already exists",
-                    exchangeRate.getBaseCurrency(), exchangeRate.getTargetCurrency());
+                    exchangeRate.getBaseCurrency(),
+                    exchangeRate.getTargetCurrency());
             throw new ExchangeRateAlreadyExistsException();
         } else if (sqlState.equals(NOT_NULL_CONSTRAINT)) {
             log.error("One of the currencies doesn't exist in the database ('{}', '{}')",
-                    exchangeRate.getBaseCurrency(), exchangeRate.getTargetCurrency());
+                    exchangeRate.getBaseCurrency(),
+                    exchangeRate.getTargetCurrency());
             throw new CurrencyNotFoundException();
         } else {
-            log.error("Error while saving exchange rate with id '{}'", exchangeRate.getId(), e);
+            log.error("Error while saving/updating exchange rate with codes ('{}', '{}')",
+                    exchangeRate.getBaseCurrency(),
+                    exchangeRate.getTargetCurrency(), e);
             throw new DatabaseException(e);
         }
     }
