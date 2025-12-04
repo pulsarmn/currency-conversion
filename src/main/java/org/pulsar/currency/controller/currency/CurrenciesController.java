@@ -7,6 +7,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.pulsar.currency.controller.handler.ExceptionHandler;
 import org.pulsar.currency.dto.currency.CurrencyCreateRequest;
 import org.pulsar.currency.dto.currency.CurrencyResponse;
 import org.pulsar.currency.dto.ErrorResponse;
@@ -26,63 +27,36 @@ public class CurrenciesController extends HttpServlet {
 
     private ObjectMapper objectMapper;
     private CurrencyService currencyService;
+    private ExceptionHandler exceptionHandler;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        ServletContext servletContext = config.getServletContext();
-        objectMapper = (ObjectMapper) servletContext.getAttribute("objectMapper");
-        currencyService = (CurrencyService) servletContext.getAttribute("currencyService");
+        ServletContext context = config.getServletContext();
+        objectMapper = (ObjectMapper) context.getAttribute("objectMapper");
+        currencyService = (CurrencyService) context.getAttribute("currencyService");
+        exceptionHandler = (ExceptionHandler) context.getAttribute("exceptionHandler");
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String jsonResponse = handleDoGet(response);
-        response.getWriter().write(jsonResponse);
-    }
-
-    private String handleDoGet(HttpServletResponse response) {
         try {
             List<CurrencyResponse> currencies = currencyService.getAll();
             response.setStatus(SC_OK);
-            return objectMapper.writeValueAsString(currencies);
-        } catch (DatabaseException e) {
-            response.setStatus(SC_INTERNAL_SERVER_ERROR);
-            return objectMapper.writeValueAsString(new ErrorResponse("Ошибка базы данных"));
+            objectMapper.writeValue(response.getWriter(), currencies);
         } catch (Exception e) {
-            response.setStatus(SC_INTERNAL_SERVER_ERROR);
-            return objectMapper.writeValueAsString(new ErrorResponse("Ошибка сервера. Уже работаем над её исправлением"));
+            exceptionHandler.handle(e, response);
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String jsonResponse = handleDoPost(request, response);
-        response.getWriter().write(jsonResponse);
-    }
-
-    private String handleDoPost(HttpServletRequest request, HttpServletResponse response) {
         CurrencyCreateRequest createRequest = buildCreateRequest(request);
-
-        return processCreateRequest(createRequest, response);
-    }
-
-    private String processCreateRequest(CurrencyCreateRequest createRequest, HttpServletResponse response) {
         try {
             CurrencyResponse currencyResponse = currencyService.create(createRequest);
             response.setStatus(SC_CREATED);
-            return objectMapper.writeValueAsString(currencyResponse);
-        } catch (IllegalArgumentException e) {
-            response.setStatus(SC_BAD_REQUEST);
-            return objectMapper.writeValueAsString(new ErrorResponse("Отсутствует один или несколько параметров"));
-        } catch (CurrencyAlreadyExistsException e) {
-            response.setStatus(SC_CONFLICT);
-            return objectMapper.writeValueAsString(new ErrorResponse("Валюта с кодом '%s' уже существует".formatted(createRequest.code())));
-        } catch (DatabaseException e) {
-            response.setStatus(SC_INTERNAL_SERVER_ERROR);
-            return objectMapper.writeValueAsString(new ErrorResponse("Ошибка базы данных"));
+            objectMapper.writeValue(response.getWriter(), currencyResponse);
         } catch (Exception e) {
-            response.setStatus(SC_INTERNAL_SERVER_ERROR);
-            return objectMapper.writeValueAsString(new ErrorResponse("Ошибка сервера"));
+            exceptionHandler.handle(e, response);
         }
     }
 
