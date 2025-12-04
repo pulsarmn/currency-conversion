@@ -10,7 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.pulsar.currency.dto.currency.CurrencyResponse;
 import org.pulsar.currency.dto.ErrorResponse;
-import org.pulsar.currency.exception.CurrencyNotFoundException;
+import org.pulsar.currency.exception.currency.CurrencyNotFoundException;
 import org.pulsar.currency.exception.DatabaseException;
 import org.pulsar.currency.service.CurrencyService;
 import tools.jackson.databind.ObjectMapper;

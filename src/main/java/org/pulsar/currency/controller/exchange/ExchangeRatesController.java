@@ -10,9 +10,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.pulsar.currency.dto.ErrorResponse;
 import org.pulsar.currency.dto.exchange.ExchangeRateCreateRequest;
 import org.pulsar.currency.dto.exchange.ExchangeRateResponse;
-import org.pulsar.currency.exception.CurrencyNotFoundException;
+import org.pulsar.currency.exception.currency.CurrencyNotFoundException;
 import org.pulsar.currency.exception.DatabaseException;
-import org.pulsar.currency.exception.ExchangeRateAlreadyExistsException;
+import org.pulsar.currency.exception.exchange.ExchangeRateAlreadyExistsException;
 import org.pulsar.currency.service.ExchangeRateService;
 import tools.jackson.databind.ObjectMapper;
 

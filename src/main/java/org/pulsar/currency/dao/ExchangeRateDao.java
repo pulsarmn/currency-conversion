@@ -2,9 +2,9 @@ package org.pulsar.currency.dao;
 
 import lombok.extern.slf4j.Slf4j;
 import org.postgresql.util.PSQLState;
-import org.pulsar.currency.exception.CurrencyNotFoundException;
+import org.pulsar.currency.exception.currency.CurrencyNotFoundException;
 import org.pulsar.currency.exception.DatabaseException;
-import org.pulsar.currency.exception.ExchangeRateAlreadyExistsException;
+import org.pulsar.currency.exception.exchange.ExchangeRateAlreadyExistsException;
 import org.pulsar.currency.model.Currency;
 import org.pulsar.currency.model.ExchangeRate;
 

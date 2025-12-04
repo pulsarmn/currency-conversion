@@ -3,8 +3,8 @@ package org.pulsar.currency.service;
 import org.pulsar.currency.dao.CurrencyDao;
 import org.pulsar.currency.dto.currency.CurrencyCreateRequest;
 import org.pulsar.currency.dto.currency.CurrencyResponse;
-import org.pulsar.currency.exception.CurrencyAlreadyExistsException;
-import org.pulsar.currency.exception.CurrencyNotFoundException;
+import org.pulsar.currency.exception.currency.CurrencyAlreadyExistsException;
+import org.pulsar.currency.exception.currency.CurrencyNotFoundException;
 import org.pulsar.currency.model.Currency;
 import org.pulsar.currency.util.StringUtils;
 

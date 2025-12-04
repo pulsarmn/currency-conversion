@@ -11,7 +11,7 @@ import org.pulsar.currency.dto.ErrorResponse;
 import org.pulsar.currency.dto.exchange.ExchangeRequest;
 import org.pulsar.currency.dto.exchange.ExchangeResponse;
 import org.pulsar.currency.exception.DatabaseException;
-import org.pulsar.currency.exception.ExchangeRateNotFoundException;
+import org.pulsar.currency.exception.exchange.ExchangeRateNotFoundException;
 import org.pulsar.currency.service.ExchangeRateService;
 import tools.jackson.databind.ObjectMapper;
 
