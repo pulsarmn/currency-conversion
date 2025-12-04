@@ -5,7 +5,7 @@ plugins {
 }
 
 group = 'org.pulsar.currency'
-version = '1.7.0'
+version = '1.8.0'
 
 ext {
     javaVersion = JavaVersion.VERSION_21
