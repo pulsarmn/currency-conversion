@@ -162,7 +162,7 @@ public class ExchangeRateDao {
             log.error("One of the currencies doesn't exist in the database ('{}', '{}')",
                     exchangeRate.getBaseCurrency(),
                     exchangeRate.getTargetCurrency());
-            throw new CurrencyNotFoundException();
+            throw new CurrencyNotFoundException("");
         } else {
             log.error("Error while saving/updating exchange rate with codes ('{}', '{}')",
                     exchangeRate.getBaseCurrency(),
