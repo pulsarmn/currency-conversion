@@ -9,6 +9,7 @@ import org.pulsar.currency.controller.handler.ExceptionHandler;
 import org.pulsar.currency.dao.CurrencyDao;
 import org.pulsar.currency.dao.ExchangeRateDao;
 import org.pulsar.currency.mapper.CurrencyMapper;
+import org.pulsar.currency.mapper.ExchangeRateMapper;
 import org.pulsar.currency.service.CurrencyService;
 import org.pulsar.currency.service.ExchangeRateService;
 import tools.jackson.databind.ObjectMapper;
@@ -30,7 +31,8 @@ public class StartupListener implements ServletContextListener {
         servletContext.setAttribute("currencyService", currencyService);
 
         ExchangeRateDao exchangeRateDao = new ExchangeRateDao(dataSource);
-        ExchangeRateService exchangeRateService = new ExchangeRateService(exchangeRateDao);
+        ExchangeRateMapper exchangeRateMapper = new ExchangeRateMapper(currencyMapper);
+        ExchangeRateService exchangeRateService = new ExchangeRateService(exchangeRateDao, exchangeRateMapper, currencyMapper);
         servletContext.setAttribute("exchangeRateService", exchangeRateService);
 
         ObjectMapper objectMapper = new ObjectMapper();
