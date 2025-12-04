@@ -35,5 +35,8 @@ public class StartupListener implements ServletContextListener {
 
         ObjectMapper objectMapper = new ObjectMapper();
         servletContext.setAttribute("objectMapper", objectMapper);
+
+        ExceptionHandler exceptionHandler = new ExceptionHandler(objectMapper);
+        servletContext.setAttribute("exceptionHandler", exceptionHandler);
     }
 }

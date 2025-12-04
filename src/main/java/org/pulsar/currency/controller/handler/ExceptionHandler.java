@@ -6,6 +6,8 @@ import org.pulsar.currency.exception.DatabaseException;
 import org.pulsar.currency.exception.currency.CurrencyAlreadyExistsException;
 import tools.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
+
 import static jakarta.servlet.http.HttpServletResponse.*;
 
 public class ExceptionHandler {
@@ -16,20 +18,23 @@ public class ExceptionHandler {
         this.objectMapper = objectMapper;
     }
 
-    public String handle(Exception e, HttpServletResponse response) {
-        if (e instanceof CurrencyAlreadyExistsException exception) {
-            response.setStatus(SC_CONFLICT);
-            return createError("Валюта с кодом '%s' уже существует".formatted(exception.getCurrencyCode()));
-        } else if (e instanceof DatabaseException) {
-            response.setStatus(SC_INTERNAL_SERVER_ERROR);
-            return createError("Ошибка базы данных");
-        } else {
-            response.setStatus(SC_INTERNAL_SERVER_ERROR);
-            return createError("Ошибка сервера");
+    public void handle(Exception e, HttpServletResponse response) throws IOException {
+        switch (e) {
+            case IllegalArgumentException exception ->
+                    sendError("Отсутствует один или несколько параметров", SC_BAD_REQUEST, response);
+            case CurrencyAlreadyExistsException exception -> {
+                String message = "Валюта с кодом '%s' уже существует".formatted(exception.getCurrencyCode());
+                sendError(message, SC_CONFLICT, response);
+            }
+            case DatabaseException exception ->
+                    sendError("Ошибка базы данных", SC_INTERNAL_SERVER_ERROR, response);
+            case null, default -> sendError("Ошибка сервера", SC_INTERNAL_SERVER_ERROR, response);
         }
     }
 
-    private String createError(String message) {
-        return objectMapper.writeValueAsString(new ErrorResponse(message));
+    private void sendError(String message, int status, HttpServletResponse response) throws IOException {
+        ErrorResponse error = new ErrorResponse(message);
+        response.setStatus(status);
+        objectMapper.writeValue(response.getWriter(), error);
     }
 }
