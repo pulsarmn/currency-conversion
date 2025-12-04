@@ -5,6 +5,7 @@ import org.pulsar.currency.dto.ErrorResponse;
 import org.pulsar.currency.exception.DatabaseException;
 import org.pulsar.currency.exception.currency.CurrencyAlreadyExistsException;
 import org.pulsar.currency.exception.currency.CurrencyNotFoundException;
+import org.pulsar.currency.exception.exchange.ExchangeRateAlreadyExistsException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -30,6 +31,11 @@ public class ExceptionHandler {
             case CurrencyNotFoundException exception -> {
                 String message = "Валюта с кодом '%s' не найдена".formatted(exception.getCurrencyCode());
                 sendError(message, SC_NOT_FOUND, response);
+            }
+            case ExchangeRateAlreadyExistsException exception -> {
+                String message = "Валютная пара с кодами ('%s', '%s') уже существует"
+                        .formatted(exception.getBaseCurrencyCode(), exception.getTargetCurrencyCode());
+                sendError(message, SC_CONFLICT, response);
             }
             case DatabaseException exception ->
                     sendError("Ошибка базы данных", SC_INTERNAL_SERVER_ERROR, response);

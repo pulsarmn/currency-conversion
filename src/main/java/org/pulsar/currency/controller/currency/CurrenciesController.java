@@ -10,16 +10,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.pulsar.currency.controller.handler.ExceptionHandler;
 import org.pulsar.currency.dto.currency.CurrencyCreateRequest;
 import org.pulsar.currency.dto.currency.CurrencyResponse;
-import org.pulsar.currency.dto.ErrorResponse;
-import org.pulsar.currency.exception.currency.CurrencyAlreadyExistsException;
-import org.pulsar.currency.exception.DatabaseException;
 import org.pulsar.currency.service.CurrencyService;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.List;
 
-import static jakarta.servlet.http.HttpServletResponse.*;
+import static jakarta.servlet.http.HttpServletResponse.SC_CREATED;
+import static jakarta.servlet.http.HttpServletResponse.SC_OK;
 
 
 @WebServlet("/currencies")

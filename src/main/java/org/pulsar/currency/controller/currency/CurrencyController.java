@@ -9,19 +9,17 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.pulsar.currency.controller.handler.ExceptionHandler;
-import org.pulsar.currency.dto.currency.CurrencyResponse;
 import org.pulsar.currency.dto.ErrorResponse;
-import org.pulsar.currency.exception.currency.CurrencyNotFoundException;
-import org.pulsar.currency.exception.DatabaseException;
+import org.pulsar.currency.dto.currency.CurrencyResponse;
 import org.pulsar.currency.service.CurrencyService;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static jakarta.servlet.http.HttpServletResponse.*;
+import static jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
+import static jakarta.servlet.http.HttpServletResponse.SC_OK;
 
 @WebServlet("/currency/*")
 public class CurrencyController extends HttpServlet {
