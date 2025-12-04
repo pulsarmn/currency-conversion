@@ -44,13 +44,26 @@ public class ExchangeRateService {
 
     public ExchangeRateResponse create(ExchangeRateCreateRequest createRequest) {
         if (isInvalid(createRequest)) {
-            throw new IllegalArgumentException("Invalid ExchangeRateCreateRequest");
+            throw new IllegalArgumentException("Invalid create request: " + createRequest);
         }
 
         ExchangeRate exchangeRate = mapToExchangeRate(createRequest);
         exchangeRateDao.save(exchangeRate);
 
         return exchangeRateDao.findByCodes(createRequest.baseCurrencyCode(), createRequest.targetCurrencyCode())
+                .map(this::mapToResponse)
+                .orElseThrow();
+    }
+
+    public ExchangeRateResponse update(ExchangeRateCreateRequest updateRequest) {
+        if (isInvalid(updateRequest)) {
+            throw new IllegalArgumentException("Invalid update request: " + updateRequest);
+        }
+
+        ExchangeRate exchangeRate = mapToExchangeRate(updateRequest);
+        exchangeRateDao.update(exchangeRate);
+
+        return exchangeRateDao.findByCodes(updateRequest.baseCurrencyCode(), updateRequest.targetCurrencyCode())
                 .map(this::mapToResponse)
                 .orElseThrow();
     }
@@ -66,8 +79,8 @@ public class ExchangeRateService {
         }
 
         try {
-            new BigDecimal(createRequest.rate());
-            return false;
+            BigDecimal rate = new BigDecimal(createRequest.rate());
+            return rate.compareTo(BigDecimal.ZERO) <= 0;
         } catch (NumberFormatException e) {
             return true;
         }
