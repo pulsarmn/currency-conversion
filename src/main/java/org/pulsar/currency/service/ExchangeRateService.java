@@ -12,6 +12,7 @@ import org.pulsar.currency.mapper.ExchangeRateMapper;
 import org.pulsar.currency.model.Currency;
 import org.pulsar.currency.model.ExchangeRate;
 import org.pulsar.currency.util.StringUtils;
+import org.pulsar.currency.validation.Validator;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -19,16 +20,21 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+// Можно и даже нужно продолжить рефакторинг, но мне лень :)
 public class ExchangeRateService {
 
     private final ExchangeRateDao exchangeRateDao;
     private final ExchangeRateMapper exchangeRateMapper;
     private final CurrencyMapper currencyMapper;
+    private final Validator<ExchangeRateCreateRequest> createRequestValidator;
+    private final Validator<ExchangeRequest> exchangeRequestValidator;
 
-    public ExchangeRateService(ExchangeRateDao exchangeRateDao, ExchangeRateMapper exchangeRateMapper, CurrencyMapper currencyMapper) {
+    public ExchangeRateService(ExchangeRateDao exchangeRateDao, ExchangeRateMapper exchangeRateMapper, CurrencyMapper currencyMapper, Validator<ExchangeRateCreateRequest> createRequestValidator, Validator<ExchangeRequest> exchangeRequestValidator) {
         this.exchangeRateDao = exchangeRateDao;
         this.exchangeRateMapper = exchangeRateMapper;
         this.currencyMapper = currencyMapper;
+        this.createRequestValidator = createRequestValidator;
+        this.exchangeRequestValidator = exchangeRequestValidator;
     }
 
     public List<ExchangeRateResponse> getAll() {
@@ -51,7 +57,7 @@ public class ExchangeRateService {
     }
 
     public ExchangeRateResponse create(ExchangeRateCreateRequest createRequest) {
-        if (isInvalid(createRequest)) {
+        if (!createRequestValidator.validate(createRequest).isValid()) {
             throw new IllegalArgumentException("Invalid create request: " + createRequest);
         }
 
@@ -64,7 +70,7 @@ public class ExchangeRateService {
     }
 
     public ExchangeRateResponse update(ExchangeRateCreateRequest updateRequest) {
-        if (isInvalid(updateRequest)) {
+        if (!createRequestValidator.validate(updateRequest).isValid()) {
             throw new IllegalArgumentException("Invalid update request: " + updateRequest);
         }
 
@@ -76,26 +82,8 @@ public class ExchangeRateService {
                 .orElseThrow();
     }
 
-    private boolean isInvalid(ExchangeRateCreateRequest createRequest) {
-        if (createRequest == null
-                || StringUtils.isNullOrBlank(createRequest.baseCurrencyCode())
-                || StringUtils.isNullOrBlank(createRequest.targetCurrencyCode())
-                || StringUtils.isNullOrBlank(createRequest.rate())) {
-            return true;
-        } else if (createRequest.baseCurrencyCode().length() != 3 || createRequest.targetCurrencyCode().length() != 3) {
-            return true;
-        }
-
-        try {
-            BigDecimal rate = new BigDecimal(createRequest.rate());
-            return rate.compareTo(BigDecimal.ZERO) <= 0;
-        } catch (NumberFormatException e) {
-            return true;
-        }
-    }
-
     public ExchangeResponse exchange(ExchangeRequest exchangeRequest) {
-        if (isInvalid(exchangeRequest)) {
+        if (!exchangeRequestValidator.validate(exchangeRequest).isValid()) {
             throw new IllegalArgumentException();
         }
 
@@ -153,23 +141,5 @@ public class ExchangeRateService {
                 .amount(amount)
                 .convertedAmount(convertedAmount)
                 .build();
-    }
-
-    private boolean isInvalid(ExchangeRequest exchangeRequest) {
-        if (exchangeRequest == null
-                || StringUtils.isNullOrBlank(exchangeRequest.baseCurrencyCode())
-                || StringUtils.isNullOrBlank(exchangeRequest.targetCurrencyCode())
-                || StringUtils.isNullOrBlank(exchangeRequest.amount())) {
-            return true;
-        } else if (exchangeRequest.baseCurrencyCode().length() != 3 || exchangeRequest.targetCurrencyCode().length() != 3) {
-            return true;
-        }
-
-        try {
-            BigDecimal rate = new BigDecimal(exchangeRequest.amount());
-            return rate.compareTo(BigDecimal.ZERO) <= 0;
-        } catch (NumberFormatException e) {
-            return true;
-        }
     }
 }
