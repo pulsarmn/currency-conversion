@@ -1,4 +1,4 @@
-package org.pulsar.currency.controller;
+package org.pulsar.currency.controller.exchange;
 
 
 import jakarta.servlet.ServletConfig;
@@ -8,12 +8,13 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.pulsar.currency.controller.handler.ExceptionHandler;
 import org.pulsar.currency.dto.ErrorResponse;
-import org.pulsar.currency.dto.ExchangeRateCreateRequest;
-import org.pulsar.currency.dto.ExchangeRateResponse;
-import org.pulsar.currency.exception.CurrencyNotFoundException;
+import org.pulsar.currency.dto.exchange.ExchangeRateCreateRequest;
+import org.pulsar.currency.dto.exchange.ExchangeRateResponse;
+import org.pulsar.currency.exception.currency.CurrencyNotFoundException;
 import org.pulsar.currency.exception.DatabaseException;
-import org.pulsar.currency.exception.ExchangeRateNotFoundException;
+import org.pulsar.currency.exception.exchange.ExchangeRateNotFoundException;
 import org.pulsar.currency.service.ExchangeRateService;
 import tools.jackson.databind.ObjectMapper;
 
@@ -30,6 +31,7 @@ public class ExchangeRateController extends HttpServlet {
 
     private ObjectMapper objectMapper;
     private ExchangeRateService exchangeRateService;
+    private ExceptionHandler exceptionHandler;
 
     private static final String CODES_PATTERN = "^/exchangeRate/(?<basecode>[a-zA-Z]{3})(?<targetcode>[a-zA-Z]{3})$";
 
@@ -38,15 +40,11 @@ public class ExchangeRateController extends HttpServlet {
         ServletContext context = config.getServletContext();
         objectMapper = (ObjectMapper) context.getAttribute("objectMapper");
         exchangeRateService = (ExchangeRateService) context.getAttribute("exchangeRateService");
+        exceptionHandler = (ExceptionHandler) context.getAttribute("exceptionHandler");
     }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String jsonResponse = handleDoGet(request, response);
-        response.getWriter().write(jsonResponse);
-    }
-
-    private String handleDoGet(HttpServletRequest request, HttpServletResponse response) {
         String requestURI = request.getRequestURI();
         String baseCode = extractBaseCode(requestURI);
         String targetCode = extractTargetCode(requestURI);
@@ -54,57 +52,30 @@ public class ExchangeRateController extends HttpServlet {
         try {
             ExchangeRateResponse exchangeRateResponse = exchangeRateService.getByCodes(baseCode, targetCode);
             response.setStatus(SC_OK);
-            return objectMapper.writeValueAsString(exchangeRateResponse);
-        } catch (IllegalArgumentException e) {
-            response.setStatus(SC_BAD_REQUEST);
-            return objectMapper.writeValueAsString(new ErrorResponse("Код валюты отсутствует в адресе: " + requestURI));
-        } catch (ExchangeRateNotFoundException e) {
-            response.setStatus(SC_NOT_FOUND);
-            return objectMapper.writeValueAsString(
-                    new ErrorResponse("Валютная пара с кодами ('%s', '%s') не найдена".formatted(baseCode, targetCode)));
-        } catch (DatabaseException e) {
-            response.setStatus(SC_INTERNAL_SERVER_ERROR);
-            return objectMapper.writeValueAsString(new ErrorResponse("Ошибка базы данных"));
+            objectMapper.writeValue(response.getWriter(), exchangeRateResponse);
         } catch (Exception e) {
-            response.setStatus(SC_INTERNAL_SERVER_ERROR);
-            return objectMapper.writeValueAsString(new ErrorResponse("Ошибка сервера"));
+            exceptionHandler.handle(e, response);
+        }
+    }
+
+    @Override
+    protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        if (request.getMethod().equalsIgnoreCase("PATCH")) {
+            doPatch(request, response);
+        } else {
+            super.service(request, response);
         }
     }
 
     @Override
     protected void doPatch(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String jsonResponse = handleDoPatch(request, response);
-        response.getWriter().write(jsonResponse);
-    }
-
-    private String handleDoPatch(HttpServletRequest request, HttpServletResponse response) throws IOException {
         ExchangeRateCreateRequest updateRequest = buildUpdateRequest(request);
-
-        return processUpdateRequest(updateRequest, response);
-    }
-
-    private String processUpdateRequest(ExchangeRateCreateRequest updateRequest, HttpServletResponse response) {
         try {
             ExchangeRateResponse exchangeRateResponse = exchangeRateService.update(updateRequest);
             response.setStatus(SC_OK);
-            return objectMapper.writeValueAsString(exchangeRateResponse);
-        } catch (IllegalArgumentException e) {
-            response.setStatus(SC_BAD_REQUEST);
-            return objectMapper.writeValueAsString(new ErrorResponse("Отсутствует один или несколько параметров"));
-        } catch (CurrencyNotFoundException e) {
-            response.setStatus(SC_NOT_FOUND);
-            ErrorResponse errorResponse = new ErrorResponse(
-                    "Одна или обе валюты не существуют ('%s', '%s')".formatted(
-                            updateRequest.baseCurrencyCode(),
-                            updateRequest.targetCurrencyCode())
-            );
-            return objectMapper.writeValueAsString(errorResponse);
-        } catch (DatabaseException e) {
-            response.setStatus(SC_INTERNAL_SERVER_ERROR);
-            return objectMapper.writeValueAsString(new ErrorResponse("Ошибка базы данных"));
+            objectMapper.writeValue(response.getWriter(), exchangeRateResponse);
         } catch (Exception e) {
-            response.setStatus(SC_INTERNAL_SERVER_ERROR);
-            return objectMapper.writeValueAsString("Ошибка сервера");
+            exceptionHandler.handle(e, response);
         }
     }
 
@@ -139,15 +110,6 @@ public class ExchangeRateController extends HttpServlet {
         }
 
         return params;
-    }
-
-    @Override
-    protected void service(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        if (request.getMethod().equalsIgnoreCase("PATCH")) {
-            doPatch(request, response);
-        } else {
-            super.service(request, response);
-        }
     }
 
     private String extractBaseCode(String uri) {

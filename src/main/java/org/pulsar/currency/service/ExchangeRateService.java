@@ -1,31 +1,46 @@
 package org.pulsar.currency.service;
 
 import org.pulsar.currency.dao.ExchangeRateDao;
-import org.pulsar.currency.dto.*;
-import org.pulsar.currency.exception.ExchangeRateNotFoundException;
+import org.pulsar.currency.dto.currency.CurrencyResponse;
+import org.pulsar.currency.dto.exchange.ExchangeRateCreateRequest;
+import org.pulsar.currency.dto.exchange.ExchangeRateResponse;
+import org.pulsar.currency.dto.exchange.ExchangeRequest;
+import org.pulsar.currency.dto.exchange.ExchangeResponse;
+import org.pulsar.currency.exception.exchange.ExchangeRateNotFoundException;
+import org.pulsar.currency.mapper.CurrencyMapper;
+import org.pulsar.currency.mapper.ExchangeRateMapper;
 import org.pulsar.currency.model.Currency;
 import org.pulsar.currency.model.ExchangeRate;
 import org.pulsar.currency.util.StringUtils;
+import org.pulsar.currency.validation.Validator;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
+// Можно и даже нужно продолжить рефакторинг, но мне лень :)
 public class ExchangeRateService {
 
     private final ExchangeRateDao exchangeRateDao;
+    private final ExchangeRateMapper exchangeRateMapper;
+    private final CurrencyMapper currencyMapper;
+    private final Validator<ExchangeRateCreateRequest> createRequestValidator;
+    private final Validator<ExchangeRequest> exchangeRequestValidator;
 
-    public ExchangeRateService(ExchangeRateDao exchangeRateDao) {
+    public ExchangeRateService(ExchangeRateDao exchangeRateDao, ExchangeRateMapper exchangeRateMapper, CurrencyMapper currencyMapper, Validator<ExchangeRateCreateRequest> createRequestValidator, Validator<ExchangeRequest> exchangeRequestValidator) {
         this.exchangeRateDao = exchangeRateDao;
+        this.exchangeRateMapper = exchangeRateMapper;
+        this.currencyMapper = currencyMapper;
+        this.createRequestValidator = createRequestValidator;
+        this.exchangeRequestValidator = exchangeRequestValidator;
     }
 
     public List<ExchangeRateResponse> getAll() {
         return exchangeRateDao.findAll()
                 .stream()
-                .map(this::mapToResponse)
+                .map(exchangeRateMapper::mapToResponse)
                 .collect(Collectors.toList());
     }
 
@@ -37,56 +52,38 @@ public class ExchangeRateService {
         }
 
         return exchangeRateDao.findByCodes(baseCurrencyCode, targetCurrencyCode)
-                .map(this::mapToResponse)
-                .orElseThrow(ExchangeRateNotFoundException::new);
+                .map(exchangeRateMapper::mapToResponse)
+                .orElseThrow(() -> new ExchangeRateNotFoundException(baseCurrencyCode, targetCurrencyCode));
     }
 
     public ExchangeRateResponse create(ExchangeRateCreateRequest createRequest) {
-        if (isInvalid(createRequest)) {
+        if (!createRequestValidator.validate(createRequest).isValid()) {
             throw new IllegalArgumentException("Invalid create request: " + createRequest);
         }
 
-        ExchangeRate exchangeRate = mapToExchangeRate(createRequest);
+        ExchangeRate exchangeRate = exchangeRateMapper.map(createRequest);
         exchangeRateDao.save(exchangeRate);
 
         return exchangeRateDao.findByCodes(createRequest.baseCurrencyCode(), createRequest.targetCurrencyCode())
-                .map(this::mapToResponse)
+                .map(exchangeRateMapper::mapToResponse)
                 .orElseThrow();
     }
 
     public ExchangeRateResponse update(ExchangeRateCreateRequest updateRequest) {
-        if (isInvalid(updateRequest)) {
+        if (!createRequestValidator.validate(updateRequest).isValid()) {
             throw new IllegalArgumentException("Invalid update request: " + updateRequest);
         }
 
-        ExchangeRate exchangeRate = mapToExchangeRate(updateRequest);
+        ExchangeRate exchangeRate = exchangeRateMapper.map(updateRequest);
         exchangeRateDao.update(exchangeRate);
 
         return exchangeRateDao.findByCodes(updateRequest.baseCurrencyCode(), updateRequest.targetCurrencyCode())
-                .map(this::mapToResponse)
+                .map(exchangeRateMapper::mapToResponse)
                 .orElseThrow();
     }
 
-    private boolean isInvalid(ExchangeRateCreateRequest createRequest) {
-        if (createRequest == null
-                || StringUtils.isNullOrBlank(createRequest.baseCurrencyCode())
-                || StringUtils.isNullOrBlank(createRequest.targetCurrencyCode())
-                || StringUtils.isNullOrBlank(createRequest.rate())) {
-            return true;
-        } else if (createRequest.baseCurrencyCode().length() != 3 || createRequest.targetCurrencyCode().length() != 3) {
-            return true;
-        }
-
-        try {
-            BigDecimal rate = new BigDecimal(createRequest.rate());
-            return rate.compareTo(BigDecimal.ZERO) <= 0;
-        } catch (NumberFormatException e) {
-            return true;
-        }
-    }
-
     public ExchangeResponse exchange(ExchangeRequest exchangeRequest) {
-        if (isInvalid(exchangeRequest)) {
+        if (!exchangeRequestValidator.validate(exchangeRequest).isValid()) {
             throw new IllegalArgumentException();
         }
 
@@ -128,12 +125,12 @@ public class ExchangeRateService {
             return exchange(build, amount);
         }
 
-        throw new ExchangeRateNotFoundException();
+        throw new ExchangeRateNotFoundException(exchangeRequest.baseCurrencyCode(), exchangeRequest.targetCurrencyCode());
     }
 
     private ExchangeResponse exchange(ExchangeRate exchangeRate, BigDecimal amount) {
-        CurrencyResponse baseCurrency = mapToCurrencyResponse(exchangeRate.getBaseCurrency());
-        CurrencyResponse targetCurrency = mapToCurrencyResponse(exchangeRate.getTargetCurrency());
+        CurrencyResponse baseCurrency = currencyMapper.mapToResponse(exchangeRate.getBaseCurrency());
+        CurrencyResponse targetCurrency = currencyMapper.mapToResponse(exchangeRate.getTargetCurrency());
         BigDecimal rate = exchangeRate.getRate();
         BigDecimal convertedAmount = rate.multiply(amount);
 
@@ -143,55 +140,6 @@ public class ExchangeRateService {
                 .rate(exchangeRate.getRate())
                 .amount(amount)
                 .convertedAmount(convertedAmount)
-                .build();
-    }
-
-    private boolean isInvalid(ExchangeRequest exchangeRequest) {
-        if (exchangeRequest == null
-                || StringUtils.isNullOrBlank(exchangeRequest.baseCurrencyCode())
-                || StringUtils.isNullOrBlank(exchangeRequest.targetCurrencyCode())
-                || StringUtils.isNullOrBlank(exchangeRequest.amount())) {
-            return true;
-        } else if (exchangeRequest.baseCurrencyCode().length() != 3 || exchangeRequest.targetCurrencyCode().length() != 3) {
-            return true;
-        }
-
-        try {
-            BigDecimal rate = new BigDecimal(exchangeRequest.amount());
-            return rate.compareTo(BigDecimal.ZERO) <= 0;
-        } catch (NumberFormatException e) {
-            return true;
-        }
-    }
-
-    private ExchangeRate mapToExchangeRate(ExchangeRateCreateRequest createRequest) {
-        return ExchangeRate.builder()
-                .id(UUID.randomUUID())
-                .baseCurrency(Currency.builder()
-                        .code(createRequest.baseCurrencyCode())
-                        .build())
-                .targetCurrency(Currency.builder()
-                        .code(createRequest.targetCurrencyCode())
-                        .build())
-                .rate(new BigDecimal(createRequest.rate()))
-                .build();
-    }
-
-    private ExchangeRateResponse mapToResponse(ExchangeRate exchangeRate) {
-        return ExchangeRateResponse.builder()
-                .id(exchangeRate.getId())
-                .baseCurrency(mapToCurrencyResponse(exchangeRate.getBaseCurrency()))
-                .targetCurrency(mapToCurrencyResponse(exchangeRate.getTargetCurrency()))
-                .rate(exchangeRate.getRate())
-                .build();
-    }
-
-    private CurrencyResponse mapToCurrencyResponse(Currency currency) {
-        return CurrencyResponse.builder()
-                .id(currency.getId().toString())
-                .code(currency.getCode())
-                .name(currency.getFullName())
-                .sign(currency.getSign())
                 .build();
     }
 }

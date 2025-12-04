@@ -1,6 +1,7 @@
-package org.pulsar.currency.dto;
+package org.pulsar.currency.dto.exchange;
 
 import lombok.Builder;
+import org.pulsar.currency.dto.currency.CurrencyResponse;
 
 import java.math.BigDecimal;
 import java.util.UUID;

@@ -2,9 +2,9 @@ package org.pulsar.currency.dao;
 
 import lombok.extern.slf4j.Slf4j;
 import org.postgresql.util.PSQLState;
-import org.pulsar.currency.exception.CurrencyNotFoundException;
+import org.pulsar.currency.exception.currency.CurrencyNotFoundException;
 import org.pulsar.currency.exception.DatabaseException;
-import org.pulsar.currency.exception.ExchangeRateAlreadyExistsException;
+import org.pulsar.currency.exception.exchange.ExchangeRateAlreadyExistsException;
 import org.pulsar.currency.model.Currency;
 import org.pulsar.currency.model.ExchangeRate;
 
@@ -157,12 +157,13 @@ public class ExchangeRateDao {
             log.error("A currency pair with codes ('{}', '{}') already exists",
                     exchangeRate.getBaseCurrency(),
                     exchangeRate.getTargetCurrency());
-            throw new ExchangeRateAlreadyExistsException();
+            throw new ExchangeRateAlreadyExistsException(
+                    exchangeRate.getBaseCurrency().getCode(), exchangeRate.getTargetCurrency().getCode());
         } else if (sqlState.equals(NOT_NULL_CONSTRAINT)) {
             log.error("One of the currencies doesn't exist in the database ('{}', '{}')",
                     exchangeRate.getBaseCurrency(),
                     exchangeRate.getTargetCurrency());
-            throw new CurrencyNotFoundException();
+            throw new CurrencyNotFoundException("");
         } else {
             log.error("Error while saving/updating exchange rate with codes ('{}', '{}')",
                     exchangeRate.getBaseCurrency(),
