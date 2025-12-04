@@ -36,7 +36,7 @@ public class CurrencyService {
 
         return currencyDao.findByCode(currencyCode)
                 .map(currencyMapper::mapToResponse)
-                .orElseThrow(CurrencyNotFoundException::new);
+                .orElseThrow(() -> new CurrencyNotFoundException(currencyCode));
     }
 
     public CurrencyResponse create(CurrencyCreateRequest createRequest) {
